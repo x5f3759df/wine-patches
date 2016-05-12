@@ -1,0 +1,207 @@
+--- a/dlls/d3d9-nine/present.c	2016-02-16 16:55:15.059878154 +0200
++++ b/dlls/d3d9-nine/present.c	2016-02-20 16:14:29.016679489 +0200
+@@ -50,6 +50,16 @@
+ #define WINE_D3DADAPTER_DRIVER_PRESENT_VERSION_MINOR 0
+ #endif
+ 
++void create_adapter9_hook(ID3DAdapter9 **out);
++
++static ID3DAdapter9Vtbl    WineNineAdapter9_vtable;
++static IDirect3DDevice9Vtbl WineNineDevice9_vtable;
++static IDirect3DDevice9ExVtbl WineNineDevice9Ex_vtable;
++
++static const ID3DAdapter9Vtbl    * adapter_vtable;
++static const IDirect3DDevice9Vtbl * device_vtable;
++static const IDirect3DDevice9ExVtbl * deviceex_vtable;
++
+ static const struct D3DAdapter9DRM *d3d9_drm = NULL;
+ #ifdef D3DADAPTER9_DRI2
+ static int is_dri2_fallback = 0;
+@@ -1244,6 +1254,8 @@
+     }
+ 
+     TRACE("Created ID3DAdapter9 with fd %d\n", fd);
++    
++    create_adapter9_hook(out);
+ 
+     return D3D_OK;
+ }
+@@ -1331,3 +1343,178 @@
+ 
+     return FALSE;
+ }
++
++
++//======================================================================
++//======================================================================
++//======================================================================
++//======================================================================
++//======================================================================
++
++/*[02]*/ 
++ULONG  WINAPI DECLSPEC_HOTPATCH WineNineDevice9_Release(IDirect3DDevice9 *This) {
++    return device_vtable->Release(This);
++}
++
++/*[13]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9_CreateAdditionalSwapChain(IDirect3DDevice9 *This, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **pSwapChain) {
++    return device_vtable->CreateAdditionalSwapChain(This, pPresentationParameters, pSwapChain);
++}
++
++/*[14]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9_GetSwapChain(IDirect3DDevice9 *This, UINT iSwapChain, IDirect3DSwapChain9 **pSwapChain) {
++    return device_vtable->GetSwapChain   (This, iSwapChain, pSwapChain);
++}
++
++/*[16]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9_Reset(IDirect3DDevice9 *This, D3DPRESENT_PARAMETERS *pPresentationParameters) {
++    return device_vtable->Reset          (This, pPresentationParameters);
++}
++
++/*[17]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9_Present(IDirect3DDevice9 *This, const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion) {
++    return device_vtable->Present        (This, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
++}
++
++/*[21]*/
++void    WINAPI DECLSPEC_HOTPATCH WineNineDevice9_SetGammaRamp(IDirect3DDevice9 *This, UINT iSwapChain, DWORD Flags, const D3DGAMMARAMP *pRamp) {
++    return device_vtable->SetGammaRamp   (This, iSwapChain, Flags, pRamp);
++}
++
++/*[57]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9_SetRenderState(IDirect3DDevice9 *This, D3DRENDERSTATETYPE State, DWORD Value) {
++    return device_vtable->SetRenderState (This, State, Value);
++}
++
++/*[69]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9_SetSamplerState(IDirect3DDevice9 *This, DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value) {
++    return device_vtable->SetSamplerState(This, Sampler, Type, Value);
++}
++
++
++//======================================================================
++//======================================================================
++//======================================================================
++//======================================================================
++//======================================================================
++//======================================================================
++
++/*[02]*/ 
++ULONG  WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_Release(IDirect3DDevice9Ex *This) {
++    return deviceex_vtable->Release(This);
++}
++
++/*[13]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_CreateAdditionalSwapChain(IDirect3DDevice9Ex *This, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **pSwapChain) {
++    return deviceex_vtable->CreateAdditionalSwapChain(This, pPresentationParameters, pSwapChain);
++}
++
++/*[14]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_GetSwapChain(IDirect3DDevice9Ex *This, UINT iSwapChain, IDirect3DSwapChain9 **pSwapChain) {
++    return deviceex_vtable->GetSwapChain   (This, iSwapChain, pSwapChain);
++}
++
++/*[16]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_Reset(IDirect3DDevice9Ex *This, D3DPRESENT_PARAMETERS *pPresentationParameters) {
++    return deviceex_vtable->Reset          (This, pPresentationParameters);
++}
++
++/*[17]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_Present(IDirect3DDevice9Ex *This, const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion) {
++    return deviceex_vtable->Present        (This, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
++}
++
++/*[21]*/
++void    WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_SetGammaRamp(IDirect3DDevice9Ex *This, UINT iSwapChain, DWORD Flags, const D3DGAMMARAMP *pRamp) {
++    return deviceex_vtable->SetGammaRamp   (This, iSwapChain, Flags, pRamp);
++}
++
++/*[57]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_SetRenderState(IDirect3DDevice9Ex *This, D3DRENDERSTATETYPE State, DWORD Value) {
++    return deviceex_vtable->SetRenderState (This, State, Value);
++}
++
++/*[69]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_SetSamplerState(IDirect3DDevice9Ex *This, DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value) {
++    return deviceex_vtable->SetSamplerState(This, Sampler, Type, Value);
++}
++
++/*[121]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH WineNineDevice9Ex_PresentEx(IDirect3DDevice9Ex *This, const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion, DWORD dwFlags ) {
++    return deviceex_vtable->PresentEx      (This, pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags );
++}
++
++/*[132]*/
++HRESULT WINAPI DECLSPEC_HOTPATCH NineDevice9Ex_ResetEx(IDirect3DDevice9Ex *This, D3DPRESENT_PARAMETERS *pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode) {
++    return deviceex_vtable->ResetEx        (This, pPresentationParameters, pFullscreenDisplayMode);
++}
++
++//======================================================================
++HRESULT WINAPI WineNineAdapter9_CreateDevice(ID3DAdapter9 *This, UINT RealAdapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3D9 *pD3D9, ID3DPresentGroup *pPresentationFactory, IDirect3DDevice9 **ppReturnedDeviceInterface){
++    HRESULT hr;
++    int i;
++    void ** vtable;
++    void ** dtable;
++
++    hr = adapter_vtable->CreateDevice(This, RealAdapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pD3D9, pPresentationFactory, ppReturnedDeviceInterface);
++    
++    device_vtable =  (*ppReturnedDeviceInterface)->lpVtbl;
++    vtable = (void**)(*ppReturnedDeviceInterface)->lpVtbl;
++    dtable = (void**)(&WineNineDevice9_vtable);
++    for(i=0;i<119;i++) dtable[i] = vtable[i];
++    dtable[ 2] = (void*)WineNineDevice9_Release;
++    dtable[13] = (void*)WineNineDevice9_CreateAdditionalSwapChain;
++    dtable[14] = (void*)WineNineDevice9_GetSwapChain;
++    dtable[16] = (void*)WineNineDevice9_Reset;
++    dtable[17] = (void*)WineNineDevice9_Present;
++    dtable[21] = (void*)WineNineDevice9_SetGammaRamp;
++    dtable[57] = (void*)WineNineDevice9_SetRenderState;
++    dtable[69] = (void*)WineNineDevice9_SetSamplerState;
++
++    (*ppReturnedDeviceInterface)->lpVtbl = &WineNineDevice9_vtable;
++
++    return hr;
++}
++
++HRESULT WINAPI WineNineAdapter9_CreateDeviceEx(ID3DAdapter9 *This, UINT RealAdapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode, IDirect3D9Ex *pD3D9Ex, ID3DPresentGroup *pPresentationFactory, IDirect3DDevice9Ex **ppReturnedDeviceInterface){
++    HRESULT hr;
++    int i;
++    void ** vtable;
++    void ** dtable;
++
++    hr = adapter_vtable->CreateDeviceEx(This, RealAdapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, pD3D9Ex, pPresentationFactory, ppReturnedDeviceInterface);
++    deviceex_vtable = (*ppReturnedDeviceInterface)->lpVtbl;
++    vtable =  (void**)(*ppReturnedDeviceInterface)->lpVtbl;
++    dtable =  (void**)(&WineNineDevice9Ex_vtable);
++    for(i=0;i<sizeof(IDirect3DDevice9ExVtbl)/sizeof(void*);i++) ERR("DeviceEx [%2d] = %p \n", i, vtable[i]);
++    for(i=0;i<sizeof(IDirect3DDevice9ExVtbl)/sizeof(void*);i++) dtable[i] = vtable[i];
++    dtable[ 2] = (void*)WineNineDevice9Ex_Release;
++    dtable[13] = (void*)WineNineDevice9Ex_CreateAdditionalSwapChain;
++    dtable[14] = (void*)WineNineDevice9Ex_GetSwapChain;
++    dtable[16] = (void*)WineNineDevice9Ex_Reset;
++    dtable[17] = (void*)WineNineDevice9Ex_Present;
++    dtable[21] = (void*)WineNineDevice9Ex_SetGammaRamp;
++    dtable[57] = (void*)WineNineDevice9Ex_SetRenderState;
++    dtable[69] = (void*)WineNineDevice9Ex_SetSamplerState;
++
++    (*ppReturnedDeviceInterface)->lpVtbl = &WineNineDevice9Ex_vtable;
++
++    return hr;
++}
++
++
++void create_adapter9_hook(ID3DAdapter9 **out){
++    int i;
++    void ** vtable;
++    void ** dtable;
++
++    adapter_vtable = (*out)->lpVtbl;
++    vtable = (void**)adapter_vtable;
++    dtable = (void**)(&WineNineAdapter9_vtable);
++
++    for(i=0;i<12;i++)  dtable[i]=vtable[i];
++    dtable[10] = WineNineAdapter9_CreateDevice;
++    dtable[11] = WineNineAdapter9_CreateDeviceEx;
++
++    (*out)->lpVtbl=&WineNineAdapter9_vtable;
++}
